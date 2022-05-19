@@ -21,7 +21,7 @@ jobs:
             experimental: true
           - artifact: yaml-updater-mac-amd64
             os: macos-latest
-            source: yaml-config-updater-cli
+            source: yaml-config-updater-cli/build/graal/yaml-config-updater-cli
             buildTask: nativeImage
           - artifact: yaml-updater-linux-amd64
             os: ubuntu-latest
@@ -75,11 +75,11 @@ jobs:
 
       - name: Quick Test Binary
         if: ${{ ! contains(matrix.artifact, '.jar') }}
-        run: ${{ matrix.artifact }} --version
+        run: ./upload/${{ matrix.artifact }} --version
 
       - name: Quick Test Jar
         if: ${{ contains(matrix.artifact, '.jar') }}
-        run: java -jar ${{ matrix.artifact }} --version
+        run: java -jar upload/${{ matrix.artifact }} --version
 
       - uses: actions/upload-artifact@v2
         with:

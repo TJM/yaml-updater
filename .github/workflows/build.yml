@@ -16,8 +16,6 @@ jobs:
             os: macos-latest
           - artifact: yaml-updater-linux-amd64
             os: ubuntu-latest
-          - artifact: yaml-updater-alpine-amd64
-            os: alpine-latest
             experimental: true
           - artifact: yaml-updater.jar
             os: ubuntu-latest

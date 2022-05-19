@@ -1,10 +1,9 @@
 name: Test Binary Builds
 on:
-  push:
   pull_request:
 jobs:
   build:
-    name: Build ${{ matrix.artifact }} on ${{ matrix.os }}
+    name: Build ${{ matrix.artifact }}
     strategy:
       fail-fast: false
       matrix:

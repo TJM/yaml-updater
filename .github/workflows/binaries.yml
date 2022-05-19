@@ -1,9 +1,11 @@
 name: Publish native binaries
 
 on:
+  pull_request:
+  push:
   workflow_dispatch:
   release:
-    types: [created, edited]
+    types: [published]
 
 jobs:
   build:
@@ -14,16 +16,25 @@ jobs:
         include:
           - artifact: yaml-updater.exe
             os: windows-latest
+            buildTask: nativeImage
+            source: yaml-config-updater-cli/build/graal/yaml-config-updater-cli.exe
             experimental: true
           - artifact: yaml-updater-mac-amd64
             os: macos-latest
+            source: yaml-config-updater-cli
+            buildTask: nativeImage
           - artifact: yaml-updater-linux-amd64
             os: ubuntu-latest
+            source: yaml-config-updater-cli/build/graal/yaml-config-updater-cli
+            buildTask: nativeImage
             experimental: true
           - artifact: yaml-updater.jar
+            buildTask: shadowJar
+            source: yaml-config-updater-cli/build/libs/*-all.jar
             os: ubuntu-latest
 
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental || false }}
     steps:
       - uses: actions/checkout@v2
 
@@ -45,35 +56,25 @@ jobs:
       - name: Build
         run: |
           chmod +x gradlew
-          ./gradlew :yaml-config-updater-cli:nativeImage --no-daemon
+          ./gradlew :yaml-config-updater-cli:${{ matrix.buildTask }} --no-daemon
 
       - name: Rename files
         shell: bash
-        env:
-          ARTIFACT: ${{ matrix.artifact }}
         run: |
-          # Find SOURCE (this could also be a matrix variable)
-          case ${ARTIFACT} in
-            *.exe)
-              SOURCE='yaml-config-updater-cli.exe'
-              ;;
-            *.jar)
-              SOURCE=`ls -1 yaml-config-updater-cli/build/libs/*-all.jar`
-              ;;
-            *)
-              SOURCE='yaml-config-updater-cli/build/graal/yaml-config-updater-cli'
-              ;;
-          esac
           mkdir upload
-          cp ${SOURCE} upload/${ARTIFACT}
+          cp ${{ matrix.source }} "upload/${{ matrix.artifact }}"
 
       - name: Run UPX
         uses: crazy-max/ghaction-upx@v1.4.0
+        if: ${{ ! contains(matrix.artifact, '.jar') }}
         continue-on-error: true
         with:
           version: latest
           files: upload/${{ matrix.artifact }}
           args: "--lzma --best"
+
+      - name: Quick Test
+        run: ${{ matrix.artifact }} --version
 
       - uses: actions/upload-artifact@v2
         with:
@@ -82,6 +83,7 @@ jobs:
 
   publishBuilds:
     runs-on: ubuntu-latest
+    if: github.event.release.tag_name
     strategy:
       fail-fast: false
       matrix:

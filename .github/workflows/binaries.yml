@@ -6,7 +6,6 @@ on:
     types: [created, edited]
 
 jobs:
-
   buildOnWindows:
     runs-on: windows-latest
 
@@ -43,7 +42,7 @@ jobs:
         with:
           version: latest
           files: upload/yaml-updater.exe
-          args: '--lzma --best'
+          args: "--lzma --best"
 
       - uses: actions/upload-artifact@v2
         with:
@@ -76,7 +75,7 @@ jobs:
         continue-on-error: true
         with:
           file: upload/yaml-updater-mac-amd64
-          args: '--lzma --best'
+          args: "--lzma --best"
 
       - uses: actions/upload-artifact@v2
         with:
@@ -112,7 +111,7 @@ jobs:
         with:
           version: latest
           files: upload/yaml-updater-linux-amd64
-          args: '--lzma --best'
+          args: "--lzma --best"
 
       - uses: actions/upload-artifact@v2
         with:
@@ -124,44 +123,28 @@ jobs:
           name: yaml-updater-linux-amd64
           path: upload/yaml-updater-linux-amd64
 
-      - uses: actions/download-artifact@v2
+  publishBuilds:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact:
+          - yaml-updater.exe
+          - yaml-updater-mac-amd64
+          - yaml-updater-linux-amd64
+          - yaml-updater.jar
+    needs: [buildOnWindows, buildOnMac, buildOnLinux]
+    steps:
+      - name: Download artifact ${{ matrix.artifact }}
+        uses: actions/download-artifact@v2
         with:
-          name: yaml-updater.exe
+          name: ${{ matrix.artifact }}
           path: upload
 
-      - uses: actions/download-artifact@v2
-        with:
-          name: yaml-updater-mac-amd64
-          path: upload
-
-      - name: Upload jar
+      - name: Upload ${{ matrix.artifact }}
         if: ${{ github.event_name == 'release' }}
         uses: JasonEtco/upload-to-release@master
         with:
-          args: upload/yaml-updater.jar application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload linux binary
-        if: ${{ github.event_name == 'release' }}
-        uses: JasonEtco/upload-to-release@master
-        with:
-          args: upload/yaml-updater-linux-amd64 application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload windows binary
-        if: ${{ github.event_name == 'release' }}
-        uses: JasonEtco/upload-to-release@master
-        with:
-          args: upload/yaml-updater.exe application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload mac binary
-        if: ${{ github.event_name == 'release' }}
-        uses: JasonEtco/upload-to-release@master
-        with:
-          args: upload/yaml-updater-mac-amd64 application/octet-stream
+          args: upload/${{ matrix.artifact }} application/octet-stream
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

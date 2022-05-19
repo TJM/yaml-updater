@@ -73,8 +73,13 @@ jobs:
           files: upload/${{ matrix.artifact }}
           args: "--lzma --best"
 
-      - name: Quick Test
+      - name: Quick Test Binary
+        if: ${{ ! contains(matrix.artifact, '.jar') }}
         run: ${{ matrix.artifact }} --version
+
+      - name: Quick Test Jar
+        if: ${{ contains(matrix.artifact, '.jar') }}
+        run: java -jar ${{ matrix.artifact }} --version
 
       - uses: actions/upload-artifact@v2
         with:

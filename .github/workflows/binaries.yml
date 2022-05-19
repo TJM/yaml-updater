@@ -84,7 +84,6 @@ jobs:
 
   buildOnLinux:
     runs-on: ubuntu-latest
-    needs: [buildOnWindows, buildOnMac]
 
     steps:
       - uses: actions/checkout@v2

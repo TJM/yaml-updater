@@ -6,9 +6,26 @@ on:
     types: [created, edited]
 
 jobs:
-  buildOnWindows:
-    runs-on: windows-latest
+  build:
+    name: Build ${{ matrix.artifact }} on ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        includes:
+          - artifact: yaml-updater.exe
+            runs-on: windows-latest
+            experimental: true
+          - artifact: yaml-updater-mac-amd64
+            runs-on: macos-latest
+          - artifact: yaml-updater-linux-amd64
+            runs-on: ubuntu-latest
+          - artifact: yaml-updater-alpine-amd64
+            runs-on: alpine-latest
+            experimental: true
+          - artifact: yaml-updater.jar
+            runs-on: ubuntu-latest
 
+    runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v2
 
@@ -18,9 +35,11 @@ jobs:
           java-version: 11
 
       - name: Setup MS dev tools
+        if: ${{ endsWith(matrix.artifact, '.exe' }}
         uses: ilammy/msvc-dev-cmd@v1.10.0
 
       - name: Setup MS VS tools
+        if: ${{ endsWith(matrix.artifact, '.exe' }}
         uses: microsoft/setup-msbuild@v1.1
         with:
           msbuild-architecture: x64
@@ -32,95 +51,34 @@ jobs:
 
       - name: Rename files
         shell: bash
+        env:
+          ARTIFACT: ${{ matrix.artifact }}
         run: |
+          case ${ARTIFACT} in
+            *.exe)
+              SOURCE='yaml-config-updater-cli.exe'
+              ;;
+            *.jar)
+              SOURCE='yaml-config-updater-cli/build/libs/*-all.jar'
+            *)
+              SOURCE='yaml-config-updater-cli/build/graal/yaml-config-updater-cli'
+              ;;
+          esac
           mkdir upload
-          cp yaml-config-updater-cli/build/graal/yaml-config-updater-cli.exe upload/yaml-updater.exe
+          cp ${SOURCE} upload/${ARTIFACT}
 
       - name: Run UPX
         uses: crazy-max/ghaction-upx@v1.4.0
         continue-on-error: true
         with:
           version: latest
-          files: upload/yaml-updater.exe
+          files: upload/${{ matrix.artifact }}
           args: "--lzma --best"
 
       - uses: actions/upload-artifact@v2
         with:
-          name: yaml-updater.exe
-          path: upload/yaml-updater.exe
-
-  buildOnMac:
-    runs-on: macos-latest
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up JDK 11
-        uses: actions/setup-java@v1
-        with:
-          java-version: 11
-
-      - name: Build
-        run: |
-          chmod +x gradlew
-          ./gradlew :yaml-config-updater-cli:nativeImage --no-daemon
-
-      - name: Rename files
-        run: |
-          mkdir upload
-          cp yaml-config-updater-cli/build/graal/yaml-config-updater-cli upload/yaml-updater-mac-amd64
-
-      - name: Run UPX
-        uses: svenstaro/upx-action@v2
-        continue-on-error: true
-        with:
-          file: upload/yaml-updater-mac-amd64
-          args: "--lzma --best"
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: yaml-updater-mac-amd64
-          path: upload/yaml-updater-mac-amd64
-
-  buildOnLinux:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up JDK 11
-        uses: actions/setup-java@v1
-        with:
-          java-version: 11
-
-      - name: Build
-        run: |
-          chmod +x gradlew
-          ./gradlew :yaml-config-updater-cli:shadowJar :yaml-config-updater-cli:nativeImage --no-daemon
-
-      - name: Rename files
-        run: |
-          mkdir upload
-          cp yaml-config-updater-cli/build/libs/*-all.jar upload/yaml-updater.jar
-          cp yaml-config-updater-cli/build/graal/yaml-config-updater-cli upload/yaml-updater-linux-amd64
-
-      - name: Run UPX
-        uses: crazy-max/ghaction-upx@v1.4.0
-        continue-on-error: true
-        with:
-          version: latest
-          files: upload/yaml-updater-linux-amd64
-          args: "--lzma --best"
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: yaml-updater.jar
-          path: upload/yaml-updater.jar
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: yaml-updater-linux-amd64
-          path: upload/yaml-updater-linux-amd64
+          name: ${{ matrix.artifact }}
+          path: upload/${{ matrix.artifact }}
 
   publishBuilds:
     runs-on: ubuntu-latest
@@ -131,8 +89,9 @@ jobs:
           - yaml-updater.exe
           - yaml-updater-mac-amd64
           - yaml-updater-linux-amd64
+          - yaml-updater-alpine-amd64
           - yaml-updater.jar
-    needs: [buildOnWindows, buildOnMac, buildOnLinux]
+    needs: [build]
     steps:
       - name: Download artifact ${{ matrix.artifact }}
         uses: actions/download-artifact@v2

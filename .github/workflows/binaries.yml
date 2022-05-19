@@ -47,6 +47,7 @@ jobs:
           msbuild-architecture: x64
 
       - name: Build
+        id: build
         shell: bash
         run: |
           if [ -n "${{ matrix.publishJar }}" ]; then
@@ -56,12 +57,14 @@ jobs:
           fi
           chmod +x gradlew
           ./gradlew ${BUILD_TARGET} --no-daemon
-
-      - name: Rename files
-        shell: bash
-        run: |
+          ## Rename files
           mkdir upload
           cp ${{ matrix.build }} upload/${{ matrix.artifact }}
+          echo "::set-output name=binary::upload/${{ matrix.artifact }}"
+          if [ -n "${{ matrix.publishJar }}" ]; then
+            cp yaml-config-updater-cli/build/libs/*-all.jar upload/yaml-updater.jar
+            echo "::set-output name=jarFile::upload/yaml-updater.jar"
+          fi
 
       - name: Run UPX
         if: "! contains(matrix.artifact, 'mac')"
@@ -69,31 +72,24 @@ jobs:
         continue-on-error: true
         with:
           version: latest
-          files: upload/${{ matrix.artifact }}
+          files: ${{ steps.build.outputs.binary }}
           args: "--lzma --best"
 
       - name: Quick Test
-        run: ./upload/${{ matrix.artifact }} --version
+        run: ./${{ steps.build.outputs.binary }} --version
 
       - name: Publish ${{ matrix.artifact }}
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.artifact }}
-          path: upload/${{ matrix.artifact }}
+          path: ${{ steps.build.outputs.binary }}
 
-      - name: getJarFile
-        if: matrix.publishJar
-        id: getJarFile
-        run: |
-          echo -n "::set-output name=jarFile::"`
-          ls -1 yaml-config-updater-cli/build/libs/*-all.jar`
-
-      - name: PublishJar
+      - name: Publish JAR
         uses: actions/upload-artifact@v2
         if: matrix.publishJar
         with:
           name: yaml-updater.jar
-          path: ${{ steps.getJarFile.outputs.jarFile }}
+          path: ${{ steps.build.outputs.jarFile }}
 
   publish:
     runs-on: ubuntu-latest
@@ -105,7 +101,6 @@ jobs:
           - yaml-updater.exe
           - yaml-updater-mac-amd64
           - yaml-updater-linux-amd64
-          - yaml-updater-alpine-amd64
           - yaml-updater.jar
     needs: [build]
     steps:

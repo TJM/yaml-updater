@@ -54,12 +54,14 @@ jobs:
         env:
           ARTIFACT: ${{ matrix.artifact }}
         run: |
+          # Find SOURCE (this could also be a matrix variable)
           case ${ARTIFACT} in
             *.exe)
               SOURCE='yaml-config-updater-cli.exe'
               ;;
             *.jar)
               SOURCE='yaml-config-updater-cli/build/libs/*-all.jar'
+              ;;
             *)
               SOURCE='yaml-config-updater-cli/build/graal/yaml-config-updater-cli'
               ;;

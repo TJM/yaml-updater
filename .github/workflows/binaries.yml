@@ -44,11 +44,11 @@ jobs:
           java-version: 11
 
       - name: Setup MS dev tools
-        if: ${{ endsWith(matrix.artifact, '.exe') }}
+        if: endsWith(matrix.artifact, '.exe')
         uses: ilammy/msvc-dev-cmd@v1.10.0
 
       - name: Setup MS VS tools
-        if: ${{ endsWith(matrix.artifact, '.exe') }}
+        if: endsWith(matrix.artifact, '.exe')
         uses: microsoft/setup-msbuild@v1.1
         with:
           msbuild-architecture: x64
@@ -66,7 +66,7 @@ jobs:
 
       - name: Run UPX
         uses: crazy-max/ghaction-upx@v1.4.0
-        if: ${{ ! contains(matrix.artifact, '.jar') }}
+        if: "! contains(matrix.artifact, '.jar')"
         continue-on-error: true
         with:
           version: latest
@@ -74,7 +74,7 @@ jobs:
           args: "--lzma --best"
 
       - name: Quick Test Binary
-        if: ${{ ! contains(matrix.artifact, '.jar') }}
+        if: "! contains(matrix.artifact, '.jar')"
         run: ./upload/${{ matrix.artifact }} --version
 
       - name: Quick Test Jar
@@ -113,3 +113,47 @@ jobs:
           args: upload/${{ matrix.artifact }} application/octet-stream
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dockerImage:
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact: [yaml-updater-linux-amd64]
+
+    runs-on: ubuntu-latest
+    needs: [build]
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download artifact ${{ matrix.artifact }}
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ matrix.artifact }}
+          path: upload
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: ${{ startsWith(github.event.release.tag_name, 'v') }}
+
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

@@ -41,8 +41,16 @@ jobs:
 
       - name: Build
         run: |
+          case ${ARTIFACT} in
+            *.jar)
+              BUILD='shadowJar'
+              ;;
+            *)
+              BUILD='nativeImage'
+              ;;
+          esac
           chmod +x gradlew
-          ./gradlew :yaml-config-updater-cli:nativeImage --no-daemon
+          ./gradlew :yaml-config-updater-cli:${BUILD} --no-daemon
 
       - name: Rename files
         shell: bash

@@ -11,13 +11,21 @@ jobs:
         include:
           - artifact: yaml-updater.exe
             os: windows-latest
+            buildTask: nativeImage
+            source: yaml-config-updater-cli/build/graal/yaml-config-updater-cli.exe
             experimental: true
           - artifact: yaml-updater-mac-amd64
             os: macos-latest
+            source: yaml-config-updater-cli
+            buildTask: nativeImage
           - artifact: yaml-updater-linux-amd64
             os: ubuntu-latest
+            source: yaml-config-updater-cli/build/graal/yaml-config-updater-cli
+            buildTask: nativeImage
             experimental: true
           - artifact: yaml-updater.jar
+            buildTask: shadowJar
+            source: yaml-config-updater-cli/build/libs/*-all.jar
             os: ubuntu-latest
 
     runs-on: ${{ matrix.os }}
@@ -41,35 +49,14 @@ jobs:
 
       - name: Build
         run: |
-          case "${{ matrix.artifact }}" in
-            *.jar)
-              BUILD='shadowJar'
-              ;;
-            *)
-              BUILD='nativeImage'
-              ;;
-          esac
           chmod +x gradlew
-          ./gradlew :yaml-config-updater-cli:${BUILD} --no-daemon
+          ./gradlew :yaml-config-updater-cli:${{ matrix.buildTask }} --no-daemon
 
       - name: Rename files
         shell: bash
         run: |
-          # Find SOURCE (this could also be a matrix variable)
-          set -x
-          case "${{ matrix.artifact }}" in
-            *.exe)
-              SOURCE='yaml-config-updater-cli.exe'
-              ;;
-            *.jar)
-              SOURCE=`ls -1 yaml-config-updater-cli/build/libs/*-all.jar`
-              ;;
-            *)
-              SOURCE='yaml-config-updater-cli/build/graal/yaml-config-updater-cli'
-              ;;
-          esac
           mkdir upload
-          cp ${SOURCE} "upload/${{ matrix.artifact }}"
+          cp ${{ matrix.source }} "upload/${{ matrix.artifact }}"
 
       - name: Run UPX
         uses: crazy-max/ghaction-upx@v1.4.0

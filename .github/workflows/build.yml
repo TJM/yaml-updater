@@ -1,6 +1,7 @@
 name: Test Binary Builds
 on:
   pull_request:
+  push:
 jobs:
   build:
     name: Build ${{ matrix.artifact }}

@@ -156,7 +156,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          push: ${{ startsWith(github.event.release.tag_name, 'v') }}
-
+          # push: ${{ startsWith(github.event.release.tag_name, 'v') }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -41,7 +41,7 @@ jobs:
 
       - name: Build
         run: |
-          case ${ARTIFACT} in
+          case "${{ matrix.artifact }}" in
             *.jar)
               BUILD='shadowJar'
               ;;
@@ -54,12 +54,10 @@ jobs:
 
       - name: Rename files
         shell: bash
-        env:
-          ARTIFACT: ${{ matrix.artifact }}
         run: |
           # Find SOURCE (this could also be a matrix variable)
           set -x
-          case ${ARTIFACT} in
+          case "${{ matrix.artifact }}" in
             *.exe)
               SOURCE='yaml-config-updater-cli.exe'
               ;;
@@ -71,7 +69,7 @@ jobs:
               ;;
           esac
           mkdir upload
-          cp ${SOURCE} upload/${ARTIFACT}
+          cp ${SOURCE} "upload/${{ matrix.artifact }}"
 
       - name: Run UPX
         uses: crazy-max/ghaction-upx@v1.4.0

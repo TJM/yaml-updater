@@ -58,7 +58,7 @@ jobs:
               SOURCE='yaml-config-updater-cli.exe'
               ;;
             *.jar)
-              SOURCE='yaml-config-updater-cli/build/libs/*-all.jar'
+              SOURCE=`ls -1 yaml-config-updater-cli/build/libs/*-all.jar`
               ;;
             *)
               SOURCE='yaml-config-updater-cli/build/graal/yaml-config-updater-cli'

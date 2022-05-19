@@ -4,7 +4,7 @@ on:
   push:
 jobs:
   build:
-    name: Build ${{ matrix.artifact }}
+    name: Build ${{ matrix.artifact }} (experimental ${{ matrix.experimental || false }})
     strategy:
       fail-fast: false
       matrix:
@@ -61,6 +61,7 @@ jobs:
 
       - name: Run UPX
         uses: crazy-max/ghaction-upx@v1.4.0
+        if: ${{ ! contains(matrix.artifact, '.jar') }}
         continue-on-error: true
         with:
           version: latest

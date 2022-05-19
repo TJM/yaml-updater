@@ -7,25 +7,25 @@ on:
 
 jobs:
   build:
-    name: Build ${{ matrix.artifact }} on ${{ matrix.runs-on }}
+    name: Build ${{ matrix.artifact }} on ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         includes:
           - artifact: yaml-updater.exe
-            runs-on: windows-latest
+            os: windows-latest
             experimental: true
           - artifact: yaml-updater-mac-amd64
-            runs-on: macos-latest
+            os: macos-latest
           - artifact: yaml-updater-linux-amd64
-            runs-on: ubuntu-latest
+            os: ubuntu-latest
           - artifact: yaml-updater-alpine-amd64
-            runs-on: alpine-latest
+            os: alpine-latest
             experimental: true
           - artifact: yaml-updater.jar
-            runs-on: ubuntu-latest
+            os: ubuntu-latest
 
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
 
